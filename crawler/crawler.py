@@ -129,12 +129,15 @@ if __name__ == "__main__":
             searcher for searcher in searchers if searcher not in done_searchers
         )
         for searcher in validate_searchers:
-            json_list = searcher.request_data()
-            if len(json_list) == 0:
-                done_searchers.add(searcher)
-                continue
-            searcher.save_json_data(json_list)
-            print(f'Request #{i} for keyword "{searcher.keyword}" has been saved.')
+            try:
+                json_list = searcher.request_data()
+                if len(json_list) == 0:
+                    done_searchers.add(searcher)
+                    continue
+                searcher.save_json_data(json_list)
+                print(f'Request #{i} for keyword "{searcher.keyword}" has been saved.')
+            except Exception:
+                pass
 
         if len(done_searchers) == len(searchers):
             break
