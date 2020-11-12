@@ -2,11 +2,15 @@
 .vscode/
 .idea/
 
+*.DS_Store
+
 # environment
 .env
 
 # tweet-data
 tweet-data/
+*.csv
+*.xlsx
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
