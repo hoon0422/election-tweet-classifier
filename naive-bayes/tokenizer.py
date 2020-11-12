@@ -1,103 +1,118 @@
 import nltk
-from nltk import word_tokenize
+from nltk import TweetTokenizer
 from nltk.corpus import stopwords, wordnet
 from nltk.stem import WordNetLemmatizer
 import string
-from loader import Transforms
 import re
-
-lemmatizer = WordNetLemmatizer()
-
-
-def get_wordnet_pos(word):
-    """Map POS tag to first character lemmatize() accepts"""
-    tag = nltk.pos_tag([word])[0][1][0].upper()
-    tag_dict = {
-        "J": wordnet.ADJ,
-        "N": wordnet.NOUN,
-        "V": wordnet.VERB,
-        "R": wordnet.ADV,
-    }
-
-    return tag_dict.get(tag, wordnet.NOUN)
+import json
+import unicodedata
+from functools import reduce
 
 
-def get_full_text(sample):
-    if "retweeted_status" in sample["data"]:
-        sample["data"] = sample["data"]["retweeted_status"]
-    sample["data"] = sample["data"]["full_text"]
+def create_preprocessor():
+    URL_replacement = "[link]"
 
-    return sample
+    def to_json(text: str):
+        return json.loads(text)
 
+    def get_full_text(sample):
+        if "retweeted_status" in sample:
+            sample["full_text"] = sample["retweeted_status"]["full_text"]
 
-def to_lower(sample):
-    sample["data"] = sample["data"].lower()
-    return sample
+        return sample
 
+    def normalize_unicode(sample):
+        sample["full_text"] = unicodedata.normalize("NFKD", sample["full_text"])
+        return sample
 
-def remove_keyword(sample):
-    sample["data"] = sample["data"].replace(f'#{sample["keyword"].lower()}', "")
-    return sample
+    def to_lower(sample):
+        sample["full_text"] = sample["full_text"].lower()
+        return sample
 
+    def remove_keyword(sample: dict):
+        for keyword in sample["search_keyword"]:
+            sample["full_text"] = sample["full_text"].replace(f"#{keyword.lower()}", "")
+        return sample
 
-def replace_link(sample):
-    replaced_text = "[link]"
-    sample["data"] = re.sub(
-        "http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+",
-        replaced_text,
-        sample["data"],
-        flags=re.MULTILINE,
+    def replace_link(sample):
+        sample["full_text"] = re.sub(
+            "http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+",
+            URL_replacement,
+            sample["full_text"],
+            flags=re.MULTILINE,
+        )
+        return sample
+
+    return lambda text: reduce(
+        lambda acc, el: el(acc),
+        (
+            to_json,
+            get_full_text,
+            normalize_unicode,
+            to_lower,
+            remove_keyword,
+            replace_link,
+            lambda sample: sample["full_text"],
+        ),
+        text,
     )
-    return sample
 
 
-def tokenize(sample):
-    try:
-        sample["data"] = word_tokenize(sample["data"])
-        return sample
-    except LookupError:
-        nltk.download("punkt")
-        return tokenize(sample)
+def create_tokenizer():
+    tokenizer = TweetTokenizer()
+    lemmatizer = WordNetLemmatizer()
+    cached_stopwords = None
 
+    def init():
+        nonlocal cached_stopwords
+        try:
+            wordnet.ensure_loaded()
+            cached_stopwords = set(stopwords.words("english"))
+        except LookupError:
+            nltk.download("punkt")
+            nltk.download("stopwords")
 
-def remove_stopwords(sample):
-    try:
-        sample["data"] = [
-            w for w in sample["data"] if w not in set(stopwords.words("english"))
-        ]
-        return sample
-    except LookupError:
-        nltk.download("stopwords")
-        return remove_stopwords(sample)
+    def tokenize(text):
+        try:
+            return tokenizer.tokenize(text)
+        except LookupError:
+            return tokenize(text)
 
+    def remove_stopwords(tokenized_text):
+        try:
+            return [w for w in tokenized_text if w not in cached_stopwords]
+        except LookupError:
+            return remove_stopwords(tokenized_text)
 
-def remove_punctuations(sample):
-    try:
-        sample["data"] = [w for w in sample["data"] if w not in set(string.punctuation)]
-        return sample
-    except LookupError:
-        nltk.download("punkt")
-        return remove_punctuations(sample)
+    def remove_punctuations(tokenized_text):
+        try:
+            return [w for w in tokenized_text if w not in set(string.punctuation)]
+        except LookupError:
+            return remove_punctuations(tokenized_text)
 
+    def lemmatize(tokenized_text):
+        return [lemmatizer.lemmatize(w, get_wordnet_pos(w)) for w in tokenized_text]
 
-def lemmatize(sample):
-    sample["data"] = [
-        lemmatizer.lemmatize(w, get_wordnet_pos(w)) for w in sample["data"]
-    ]
-    return sample
+    def get_wordnet_pos(word):
+        """Map POS tag to first character lemmatize() accepts"""
+        tag = nltk.pos_tag([word])[0][1][0].upper()
+        tag_dict = {
+            "J": wordnet.ADJ,
+            "N": wordnet.NOUN,
+            "V": wordnet.VERB,
+            "R": wordnet.ADV,
+        }
 
+        return tag_dict.get(tag, wordnet.NOUN)
 
-transforms = Transforms(
-    [
-        # sample['data] is `str` type
-        get_full_text,
-        to_lower,
-        remove_keyword,
-        replace_link,
-        tokenize,
-        # Now, sample['data] is `List[str]` type
-        remove_stopwords,
-        remove_punctuations,
-        lemmatize,
-    ]
-)
+    init()
+    return lambda text: reduce(
+        lambda acc, el: el(acc),
+        (
+            tokenize,
+            remove_stopwords,
+            remove_punctuations,
+            lemmatize,
+        ),
+        text,
+    )
