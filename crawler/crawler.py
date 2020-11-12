@@ -6,6 +6,7 @@ import simplejson as json
 from pathlib import Path
 from dotenv import load_dotenv
 import os
+from sample import get_largest_number_in_directory
 
 
 class Searcher:
@@ -33,7 +34,7 @@ class Searcher:
 
     def save_json_data(self, json_list):
         self.save_directory.mkdir(parents=True, exist_ok=True)
-        starting_number = self._get_largest_number_in_directory()
+        starting_number = get_largest_number_in_directory(self.save_directory)
         for json_data in json_list:
             json_data["search_keyword"] = self.keyword
             json_data["candidate_label"] = self.label
@@ -46,22 +47,6 @@ class Searcher:
                 json_file.write(json.dumps(json_data))
 
             starting_number += 1
-
-    def _get_largest_number_in_directory(self):
-        if not self.save_directory.exists():
-            return 0
-
-        return (
-            max(
-                [
-                    int(sample.stem)
-                    for sample in self.save_directory.glob("*.json")
-                    if sample.stem.isnumeric()
-                ]
-                + [0]
-            )
-            + 1
-        )
 
 
 if __name__ == "__main__":

@@ -1,29 +1,10 @@
 from pathlib import Path
 import json
-from typing import List, Dict
-
-
-class Sample:
-    path: Path
-    keywords: List[str]
-    label: str
-
-    @staticmethod
-    def get_id_and_sample(path):
-        with open(path, encoding="utf8") as f:
-            sample = json.load(f)
-            keywords = [sample["search_keyword"]]
-            label = sample["candidate_label"]
-            return sample["id"], Sample(path, keywords, label)
-
-    def __init__(self, path, keywords, label):
-        self.path = path
-        self.keywords = keywords
-        self.label = label
-
+from typing import Dict
+from sample import Sample
 
 if __name__ == "__main__":
-    root = Path("../tweet-data/raw/11022020-134320")
+    root = Path("../tweet-data/merged")
     biden_dir = root / "biden"
     trump_dir = root / "trump"
     save_dir = root.parent / (root.stem + "_no_dups")
