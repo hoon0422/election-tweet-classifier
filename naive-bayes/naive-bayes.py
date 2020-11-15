@@ -121,7 +121,7 @@ if __name__ == "__main__":
     print(f"Done! (Running time: {(dt.now() - start).total_seconds()} sec)")
 
     preprocessor = create_preprocessor()
-    tokenizer = create_tokenizer()
+    tokenizer = create_tokenizer(["trump", "biden"])
 
     print(f"Fitting Vectorizer with training set (length: {len(train_X)})...")
     start = dt.now()

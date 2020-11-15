@@ -11,6 +11,7 @@
 tweet-data/
 *.csv
 *.xlsx
+naive-bayes/confusion_matrix.txt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
