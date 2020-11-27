@@ -31,7 +31,11 @@ def create_preprocessor():
 
     def remove_keyword(sample: dict):
         for keyword in sample["search_keyword"]:
-            sample["full_text"] = sample["full_text"].replace(f"#{keyword.lower()}", "")
+            sample["full_text"] = sample["full_text"].replace(f"{keyword.lower()}", "")
+        return sample
+
+    def remove_tags(sample: dict):
+        sample["full_text"] = re.sub(r"(@\w+|#\w+)", "", sample["full_text"])
         return sample
 
     def replace_link(sample):
@@ -50,7 +54,7 @@ def create_preprocessor():
             get_full_text,
             normalize_unicode,
             to_lower,
-            remove_keyword,
+            remove_tags,
             replace_link,
             lambda sample: sample["full_text"],
         ),
@@ -58,7 +62,7 @@ def create_preprocessor():
     )
 
 
-def create_tokenizer():
+def create_tokenizer(labels):
     tokenizer = TweetTokenizer()
     lemmatizer = WordNetLemmatizer()
     cached_stopwords = None
@@ -105,6 +109,13 @@ def create_tokenizer():
 
         return tag_dict.get(tag, wordnet.NOUN)
 
+    def remove_words_including_labels(tokenized_text):
+        return [
+            token
+            for token in tokenized_text
+            if reduce(lambda acc, el: acc and el not in token, labels, True)
+        ]
+
     init()
     return lambda text: reduce(
         lambda acc, el: el(acc),
@@ -113,6 +124,7 @@ def create_tokenizer():
             remove_stopwords,
             remove_punctuations,
             lemmatize,
+            remove_words_including_labels,
         ),
         text,
     )
