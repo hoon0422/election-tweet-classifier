@@ -51,3 +51,37 @@ def split_train_test(dataset, test_ratio=0.2, shuffle=True):
     test_y = tuple(chain(*([label] * len(test_set[label]) for label in labels)))
 
     return train_X, train_y, test_X, test_y
+
+
+def split_k_fold(x, y, k=5):
+    indices = list(range(len(x)))
+    random.shuffle(indices)
+
+    num_samples = len(indices)
+    folds = [
+        indices[round(num_samples / k * i) : round(num_samples / k * (i + 1))]
+        for i in range(k)
+    ]
+
+    x_folds = [[x[idx] for idx in fold] for fold in folds]
+    y_folds = [[y[idx] for idx in fold] for fold in folds]
+
+    return x_folds, y_folds
+
+
+def merge_folds(x_folds, y_folds, exclude_idx=-1):
+    x, y = [], []
+    for i in range(len(x_folds)):
+        if i == exclude_idx:
+            continue
+
+        x.extend(x_folds[i])
+        y.extend(y_folds[i])
+
+    return x, y
+
+
+def iter_folds(x_folds, y_folds):
+    for k in range(len(x_folds)):
+        train_x, train_y = merge_folds(x_folds, y_folds, k)
+        yield train_x, train_y, x_folds[k], y_folds[k]

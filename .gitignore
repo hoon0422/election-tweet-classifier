@@ -11,6 +11,8 @@
 tweet-data/
 *.csv
 *.xlsx
+*.txt
+result_dir/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
