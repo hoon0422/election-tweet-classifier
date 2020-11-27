@@ -31,7 +31,11 @@ def create_preprocessor():
 
     def remove_keyword(sample: dict):
         for keyword in sample["search_keyword"]:
-            sample["full_text"] = sample["full_text"].replace(f"#{keyword.lower()}", "")
+            sample["full_text"] = sample["full_text"].replace(f"{keyword.lower()}", "")
+        return sample
+
+    def remove_tags(sample: dict):
+        sample["full_text"] = re.sub(r"(@\w+|#\w+)", "", sample["full_text"])
         return sample
 
     def replace_link(sample):
@@ -50,7 +54,7 @@ def create_preprocessor():
             get_full_text,
             normalize_unicode,
             to_lower,
-            remove_keyword,
+            remove_tags,
             replace_link,
             lambda sample: sample["full_text"],
         ),
