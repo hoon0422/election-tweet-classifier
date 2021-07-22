@@ -12,6 +12,7 @@ from datetime import datetime as dt
 import csv
 
 label_map = {"trump": 0, "biden": 1}
+DATASET_DIRECTORY = "../tweet-data/merged_no_dups_no_error"
 
 
 def candidate_to_binary(candidate):
@@ -186,7 +187,7 @@ if __name__ == "__main__":
     start = dt.now()
     print(f"Starting at {start.strftime('%m/%d/%Y, %H:%M:%S')}")
     print(f"Loading data set...")
-    dataset = get_tweet_dataset("../tweet-data/merged_no_dups_no_error")
+    dataset = get_tweet_dataset(DATASET_DIRECTORY)
     # dataset = dict((label, dataset[label][:1000]) for label in dataset)
     dataset = [
         (sample, label) for label, samples in dataset.items() for sample in samples
